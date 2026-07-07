@@ -186,7 +186,12 @@ fn parse_rfc3339_to_unix(s: &str) -> Option<u64> {
             .ok()
     };
 
-    if bytes[4] != b'-' || bytes[7] != b'-' || bytes[10] != b'T' || bytes[13] != b':' || bytes[16] != b':' {
+    if bytes[4] != b'-'
+        || bytes[7] != b'-'
+        || bytes[10] != b'T'
+        || bytes[13] != b':'
+        || bytes[16] != b':'
+    {
         return None;
     }
 
@@ -219,7 +224,12 @@ fn parse_rfc3339_to_unix(s: &str) -> Option<u64> {
         _ => return None,
     };
 
-    if !(1..=12).contains(&month) || !(1..=31).contains(&day) || hour > 23 || minute > 59 || second > 60 {
+    if !(1..=12).contains(&month)
+        || !(1..=31).contains(&day)
+        || hour > 23
+        || minute > 59
+        || second > 60
+    {
         return None;
     }
 
@@ -234,8 +244,9 @@ fn parse_rfc3339_to_unix(s: &str) -> Option<u64> {
     let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
     let days_since_epoch = era * 146097 + doe - 719468;
 
-    let total = days_since_epoch * 86400 + (hour as i64) * 3600 + (minute as i64) * 60 + second as i64
-        - sign * offset_secs;
+    let total =
+        days_since_epoch * 86400 + (hour as i64) * 3600 + (minute as i64) * 60 + second as i64
+            - sign * offset_secs;
 
     if total < 0 {
         None
@@ -394,6 +405,19 @@ fn parse_duration_to_minutes(duration_str: &str) -> u64 {
 }
 
 fn get_oauth_token() -> Option<String> {
+    // macOS keeps the Claude Code OAuth token in the login keychain;
+    // Linux has no keychain and Claude Code writes it to a file instead.
+    // Both hold the same {"claudeAiOauth":{"accessToken":...}} JSON.
+    let raw = keychain_credentials().or_else(file_credentials)?;
+    let parsed: serde_json::Value = serde_json::from_str(raw.trim()).ok()?;
+    parsed
+        .get("claudeAiOauth")
+        .and_then(|o| o.get("accessToken"))
+        .and_then(|t| t.as_str())
+        .map(|s| s.to_owned())
+}
+
+fn keychain_credentials() -> Option<String> {
     let output = std::process::Command::new("security")
         .args([
             "find-generic-password",
@@ -408,13 +432,12 @@ fn get_oauth_token() -> Option<String> {
         return None;
     }
 
-    let raw = String::from_utf8(output.stdout).ok()?;
-    let parsed: serde_json::Value = serde_json::from_str(raw.trim()).ok()?;
-    parsed
-        .get("claudeAiOauth")
-        .and_then(|o| o.get("accessToken"))
-        .and_then(|t| t.as_str())
-        .map(|s| s.to_owned())
+    String::from_utf8(output.stdout).ok()
+}
+
+fn file_credentials() -> Option<String> {
+    let home = std::env::var_os("HOME")?;
+    std::fs::read_to_string(std::path::Path::new(&home).join(".claude/.credentials.json")).ok()
 }
 
 struct IPv4FirstResolver;
