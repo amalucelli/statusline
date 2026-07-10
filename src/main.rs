@@ -22,7 +22,6 @@ struct ModelInfo {
 struct ContextWindow {
     total_input_tokens: Option<u64>,
     total_output_tokens: Option<u64>,
-    #[allow(dead_code)]
     context_window_size: Option<u64>,
     used_percentage: Option<f64>,
 }
@@ -75,6 +74,7 @@ const CACHE_TTL_EMPTY_SECS: u64 = 60;
 const CACHE_TTL_FULL_SECS: u64 = 120;
 const REFRESH_LOCK_STALE_SECS: u64 = 60;
 const REFRESH_ARG: &str = "--refresh-usage";
+const AUTOCOMPACT_WARN_PCT: f64 = 70.0;
 
 fn main() {
     if std::env::args().any(|a| a == REFRESH_ARG) {
@@ -97,6 +97,11 @@ fn run() -> Result<()> {
         .as_ref()
         .and_then(|cw| cw.used_percentage)
         .unwrap_or(0.0);
+    let context_window_size = input
+        .context_window
+        .as_ref()
+        .and_then(|cw| cw.context_window_size)
+        .unwrap_or(0);
 
     let session_duration_ms = match input.session_id.as_deref() {
         Some(sid) => wall_clock_session_duration_ms(sid),
@@ -113,6 +118,7 @@ fn run() -> Result<()> {
     let output = format_statusline(
         &model_name,
         context_percentage,
+        context_window_size,
         &session_duration,
         &token_metrics,
         usage.as_ref(),
@@ -335,6 +341,15 @@ fn get_session_duration_color(total_minutes: u64, plain: bool) -> &'static str {
         m if m >= 10 => "\x1b[38;5;223m",
         _ => "\x1b[38;5;245m",
     }
+}
+
+// The 1M-context models auto-compact at the 500k "auto window" — half the full
+// window — but the statusline JSON reports used_percentage against the full
+// window, so it reads ~47% just as compaction fires. Standard windows have no
+// such split. Half is the default; /autocompact can change it and the real
+// threshold isn't exposed here.
+fn autocompact_budget(context_window_size: u64) -> Option<u64> {
+    (context_window_size > 200_000).then_some(context_window_size / 2)
 }
 
 fn get_context_color(percentage: f64, plain: bool) -> &'static str {
@@ -572,6 +587,7 @@ fn refresh_usage_cache() {
 fn format_statusline(
     model_name: &str,
     context_percentage: f64,
+    context_window_size: u64,
     session_duration: &str,
     token_metrics: &str,
     usage: Option<&UsageResponse>,
@@ -587,8 +603,17 @@ fn format_statusline(
 
     components.push(format_gradient_text(model_name, plain));
 
-    let context_color = get_context_color(context_percentage, plain);
-    components.push(format!("{}{}%", context_color, context_percentage as u64));
+    let compaction_pct = autocompact_budget(context_window_size)
+        .map(|budget| context_percentage * context_window_size as f64 / budget as f64);
+    let context_color = get_context_color(compaction_pct.unwrap_or(context_percentage), plain);
+    let mut context_str = format!("{}{}%", context_color, context_percentage as u64);
+    if let Some(pct) = compaction_pct {
+        if pct >= AUTOCOMPACT_WARN_PCT {
+            let warn_color = get_context_color(pct, plain);
+            context_str.push_str(&format!(" {}!{}%", warn_color, pct as u64));
+        }
+    }
+    components.push(context_str);
 
     let duration_minutes = parse_duration_to_minutes(session_duration);
     let duration_color = get_session_duration_color(duration_minutes, plain);
