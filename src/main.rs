@@ -610,7 +610,7 @@ fn format_statusline(
     if let Some(pct) = compaction_pct {
         if pct >= AUTOCOMPACT_WARN_PCT {
             let warn_color = get_context_color(pct, plain);
-            context_str.push_str(&format!(" {}!{}%", warn_color, pct as u64));
+            context_str.push_str(&format!(" {}\u{2192}{}%", warn_color, pct as u64));
         }
     }
     components.push(context_str);
