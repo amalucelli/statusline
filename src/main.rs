@@ -343,13 +343,15 @@ fn get_session_duration_color(total_minutes: u64, plain: bool) -> &'static str {
     }
 }
 
-// The 1M-context models auto-compact at the 500k "auto window" — half the full
-// window — but the statusline JSON reports used_percentage against the full
-// window, so it reads ~47% just as compaction fires. Standard windows have no
-// such split. Half is the default; /autocompact can change it and the real
-// threshold isn't exposed here.
+// Auto-compact fires before the window fills: Claude Code holds back 20k tokens
+// for the model output and 13k more as the compaction buffer. The statusline
+// JSON reports used_percentage against the full window, so a 200k session
+// compacts near 84% and a 1M session near 97%. /autocompact can move the
+// window and the real threshold is not in the JSON.
+const AUTOCOMPACT_RESERVE_TOKENS: u64 = 33_000;
+
 fn autocompact_budget(context_window_size: u64) -> Option<u64> {
-    (context_window_size > 200_000).then_some(context_window_size / 2)
+    context_window_size.checked_sub(AUTOCOMPACT_RESERVE_TOKENS)
 }
 
 fn get_context_color(percentage: f64, plain: bool) -> &'static str {
