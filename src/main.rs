@@ -389,11 +389,10 @@ fn format_gradient_text(text: &str, plain: bool) -> String {
 
     let mut result = String::with_capacity(len * 15);
     for (i, ch) in chars.iter().enumerate() {
-        let color_idx = if segment_size == 0 {
-            0
-        } else {
-            (i / segment_size).min(GRADIENT_COLORS.len() - 1)
-        };
+        let color_idx = i
+            .checked_div(segment_size)
+            .unwrap_or(0)
+            .min(GRADIENT_COLORS.len() - 1);
         result.push_str(GRADIENT_COLORS[color_idx]);
         result.push(*ch);
     }
