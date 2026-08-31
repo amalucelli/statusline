@@ -77,6 +77,10 @@ const REFRESH_ARG: &str = "--refresh-usage";
 const AUTOCOMPACT_WARN_PCT: f64 = 70.0;
 
 fn main() {
+    if std::env::args().any(|a| a == "-v" || a == "--version") {
+        println!("statusline {}", env!("CARGO_PKG_VERSION"));
+        return;
+    }
     if std::env::args().any(|a| a == REFRESH_ARG) {
         refresh_usage_cache();
         return;
