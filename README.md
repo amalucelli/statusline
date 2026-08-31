@@ -18,15 +18,21 @@ It shows:
 ## Install
 
 ```sh
+brew install --cask amalucelli/tap/statusline
+```
+
+Or from source:
+
+```sh
 cargo install --path . --root ~/.local
 ```
 
-Then point Claude Code at it in `settings.json`:
+Then point Claude Code at it in `settings.json`, using the path `which statusline` prints:
 
 ```json
 "statusLine": {
   "type": "command",
-  "command": "/Users/you/.local/bin/statusline",
+  "command": "/opt/homebrew/bin/statusline",
   "padding": 0
 }
 ```
