@@ -1,6 +1,6 @@
 [package]
 name = "statusline"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 description = "A status line for Claude Code — model, context, session time, token counts, and usage limits."
 authors = ["Alexandre Malucelli <alexandre@malucelli.net>"]
