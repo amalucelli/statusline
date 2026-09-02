@@ -36,3 +36,12 @@ Then point Claude Code at it in `settings.json`, using the path `which statuslin
   "padding": 0
 }
 ```
+
+## Usage
+
+Claude Code runs the binary with no arguments, pipes it the session JSON on stdin, and renders the single line it writes to stdout. Flags:
+
+```sh
+statusline --help     # flags and description
+statusline -v         # print the version
+```

@@ -16,6 +16,14 @@ name = "statusline"
 path = "src/main.rs"
 
 [dependencies]
+clap = { version = "4", default-features = false, features = [
+    "std",
+    "derive",
+    "help",
+    "usage",
+    "error-context",
+    "color",
+] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 anyhow = "1.0"

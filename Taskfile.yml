@@ -10,6 +10,8 @@ tasks:
 
   install:
     desc: Install statusline to ~/.local/bin
+    env:
+      STATUSLINE_DIRTY: "1"
     cmds:
       - cargo install --path . --root ~/.local
 
