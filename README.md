@@ -8,7 +8,8 @@ This is my personal status line for Claude Code, built for my own setup. I'm not
 
 It shows:
 
-- Model name — `Opus 4.8 (1M context)`
+- Model name — `Opus 5.5`
+- Reasoning effort — `high`
 - Context usage — `9%`
 - Session duration — `0m`
 - Input / output tokens — `92k/182`

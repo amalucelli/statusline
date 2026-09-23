@@ -27,11 +27,17 @@ struct StatuslineInput {
     session_id: Option<String>,
     context_window: Option<ContextWindow>,
     cost: Option<CostInfo>,
+    effort: Option<EffortInfo>,
 }
 
 #[derive(Debug, Deserialize)]
 struct ModelInfo {
     display_name: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct EffortInfo {
+    level: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -126,7 +132,10 @@ fn run() -> Result<()> {
     let usage = usage::get_cached_usage();
 
     let output = render::format_statusline(
-        &model_name,
+        &render::Model {
+            name: &model_name,
+            effort: input.effort.as_ref().and_then(|e| e.level.as_deref()),
+        },
         context_percentage,
         context_window_size,
         &session_duration,

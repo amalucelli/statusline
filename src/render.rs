@@ -94,6 +94,24 @@ fn get_usage_color(utilization: f64, plain: bool) -> &'static str {
     }
 }
 
+// Steps along the model name's ramp so a higher effort reads hotter. `max`
+// takes the red-to-amber sweep Claude Code's /effort picker gives it. A level
+// Claude Code adds later falls back to the muted icon colour.
+fn format_effort(level: &str, plain: bool) -> String {
+    if plain {
+        return level.to_owned();
+    }
+    let color = match level {
+        "low" => GRADIENT_COLORS[1],
+        "medium" => GRADIENT_COLORS[2],
+        "high" => GRADIENT_COLORS[3],
+        "xhigh" => GRADIENT_COLORS[4],
+        "max" => return "\x1b[38;5;203mm\x1b[38;5;209ma\x1b[38;5;215mx".to_owned(),
+        _ => ICON_COLOR,
+    };
+    format!("{}{}", color, level)
+}
+
 fn format_gradient_text(text: &str, plain: bool) -> String {
     if plain {
         return text.to_owned();
@@ -115,8 +133,13 @@ fn format_gradient_text(text: &str, plain: bool) -> String {
     result
 }
 
+pub struct Model<'a> {
+    pub name: &'a str,
+    pub effort: Option<&'a str>,
+}
+
 pub fn format_statusline(
-    model_name: &str,
+    model: &Model,
     context_percentage: f64,
     context_window_size: u64,
     session_duration: &str,
@@ -132,7 +155,10 @@ pub fn format_statusline(
     let output_token_color = if plain { "" } else { OUTPUT_TOKEN_COLOR };
     let reset = if plain { "" } else { RESET };
 
-    components.push(format_gradient_text(model_name, plain));
+    components.push(format_gradient_text(model.name, plain));
+    if let Some(level) = model.effort {
+        components.push(format_effort(level, plain));
+    }
 
     let compaction_pct = autocompact_budget(context_window_size)
         .map(|budget| context_percentage * context_window_size as f64 / budget as f64);
@@ -208,4 +234,22 @@ pub fn format_statusline(
 
     let joined = components.join(&format!(" {}\u{276F} ", separator_color));
     format!("{}{}", joined, reset)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn effort_follows_model_name() {
+        let model = Model {
+            name: "Opus 5.5",
+            effort: Some("high"),
+        };
+        let line = format_statusline(&model, 0.0, 0, "0m", "0/0", None, true);
+        assert_eq!(
+            line,
+            "Opus 5.5 \u{276F} high \u{276F} 0% \u{276F} 0m \u{276F} 0/0"
+        );
+    }
 }
