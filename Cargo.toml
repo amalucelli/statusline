@@ -1,8 +1,8 @@
 [package]
 name = "statusline"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
-description = "A status line for Claude Code — model, context, session time, token counts, and usage limits."
+description = "A status line for Claude Code — model, effort, context, session time, token counts, and usage limits."
 authors = ["Alexandre Malucelli <alexandre@malucelli.net>"]
 license = "MIT"
 repository = "https://github.com/amalucelli/statusline"
